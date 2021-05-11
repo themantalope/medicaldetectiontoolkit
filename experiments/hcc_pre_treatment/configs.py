@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from default_configs import DefaultConfigs
+import medicaldetectiontoolkit as mdtk
+from mdtk.default_configs import DefaultConfigs
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import numpy as np
-
 
 class configs(DefaultConfigs):
 
@@ -28,10 +28,10 @@ class configs(DefaultConfigs):
         #    Preprocessing      #
         #########################
 
-        self.root_dir = '/path/to/raw/data'
-        self.raw_data_dir = '{}/data_nrrd'.format(self.root_dir)
-        self.pp_dir = '{}/pp_norm'.format(self.root_dir)
-        self.target_spacing = (0.7, 0.7, 1.25)
+        self.root_dir = ''
+        self.raw_data_dir = ''.format(self.root_dir)
+        self.pp_dir = ''.format(self.root_dir)
+        self.target_spacing = (1.0, 1.0, 1.0)
 
         #########################
         #         I/O           #
@@ -39,28 +39,28 @@ class configs(DefaultConfigs):
 
 
         # one out of [2, 3]. dimension the model operates in.
-        self.dim = 2
+        self.dim = 3
 
         # one out of ['mrcnn', 'retina_net', 'retina_unet', 'detection_unet', 'ufrcnn', 'detection_unet'].
-        self.model = 'retina_unet'
+        self.model = 'mrcnn'
 
         DefaultConfigs.__init__(self, self.model, server_env, self.dim)
 
         # int [0 < dataset_size]. select n patients from dataset for prototyping. If None, all data is used.
-        self.select_prototype_subset = 100
+        self.select_prototype_subset = None
 
         # path to preprocessed data.
-        self.pp_name = 'lidc_mdt'
+        self.pp_name = 'hcc_pre_treatment_mdt'
         self.input_df_name = 'info_df.pickle'
-        self.pp_data_path = '/media/gregor/HDD2TB/data/lidc/{}'.format(self.pp_name)
+        self.pp_data_path = ''.format(self.pp_name)
         self.pp_test_data_path = self.pp_data_path #change if test_data in separate folder.
 
         # settings for deployment in cloud.
         if server_env:
             # path to preprocessed data.
-            self.pp_name = 'lidc_mdt_npz'
+            self.pp_name = 'hcc_pre_treatment_mdt_npz'
             self.crop_name = 'pp_fg_slices_packed'
-            self.pp_data_path = '/datasets/datasets_ramien/lidc_exp/data/{}'.format(self.pp_name)
+            self.pp_data_path = ''.format(self.pp_name)
             self.pp_test_data_path = self.pp_data_path
             self.select_prototype_subset = None
 
@@ -73,10 +73,10 @@ class configs(DefaultConfigs):
         self.n_channels = len(self.channels)
 
         # patch_size to be used for training. pre_crop_size is the patch_size before data augmentation.
-        self.pre_crop_size_2D = [300, 300]
-        self.patch_size_2D = [288, 288]
-        self.pre_crop_size_3D = [156, 156, 96]
-        self.patch_size_3D = [128, 128, 64]
+        # self.pre_crop_size_2D = [300, 300]
+        # self.patch_size_2D = [288, 288]
+        self.pre_crop_size_3D = [156, 156, 156]
+        self.patch_size_3D = [128, 128, 128]
         self.patch_size = self.patch_size_2D if self.dim == 2 else self.patch_size_3D
         self.pre_crop_size = self.pre_crop_size_2D if self.dim == 2 else self.pre_crop_size_3D
 
@@ -134,11 +134,11 @@ class configs(DefaultConfigs):
         self.min_save_thresh = 0 if self.dim == 2 else 0
 
         self.report_score_level = ['patient', 'rois']  # choose list from 'patient', 'rois'
-        self.class_dict = {1: 'benign', 2: 'malignant'}  # 0 is background.
-        self.patient_class_of_interest = 2  # patient metrics are only plotted for one class.
+        self.class_dict = { 1: 'hcc'}  # 0 is background.
+        self.patient_class_of_interest = 1  # patient metrics are only plotted for one class.
         self.ap_match_ious = [0.1]  # list of ious to be evaluated for ap-scoring.
 
-        self.model_selection_criteria = ['malignant_ap', 'benign_ap'] # criteria to average over for saving epochs.
+        self.model_selection_criteria = ['hcc_ap'] # criteria to average over for saving epochs.
         self.min_det_thresh = 0.1  # minimum confidence value to select predictions for evaluation.
 
         # threshold for clustering predictions together (wcs = weighted cluster scoring).
@@ -147,7 +147,7 @@ class configs(DefaultConfigs):
         self.wcs_iou = 1e-5
 
         self.plot_prediction_histograms = True
-        self.plot_stat_curves = False
+        self.plot_stat_curves = True
 
         #########################
         #   Data Augmentation   #
@@ -171,7 +171,7 @@ class configs(DefaultConfigs):
         }
 
         if self.dim == 3:
-            self.da_kwargs['do_elastic_deform'] = False
+            self.da_kwargs['do_elastic_deform'] = True
             self.da_kwargs['angle_x'] = (0, 0.0)
             self.da_kwargs['angle_y'] = (0, 0.0) #must be 0!!
             self.da_kwargs['angle_z'] = (0., 2 * np.pi)
